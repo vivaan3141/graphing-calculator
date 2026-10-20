@@ -382,6 +382,8 @@
         xMax: 5,
         yMin: -5,
         yMax: 5,
+        zMin: -5,
+        zMax: 5,
         rotX: -0.82,
         rotY: 0.9,
         zoom: 1
@@ -397,6 +399,30 @@
       let items = [
         { id: createId('expr'), type: 'surface', value: 'sin(x)*cos(y)', visible: true, color: '#5ea5ff' }
       ];
+
+      function normalizeExpression(raw) {
+        if (raw == null) return '';
+        let expr = String(raw).trim();
+        if (!expr) return '';
+
+        expr = expr
+          .replace(/−/g, '-')
+          .replace(/–/g, '-')
+          .replace(/×/g, '*')
+          .replace(/÷/g, '/')
+          .replace(/·/g, '*')
+          .replace(/\s+/g, '');
+
+        const eqIndex = expr.indexOf('=');
+        if (eqIndex !== -1) {
+          expr = expr.slice(eqIndex + 1).trim();
+        }
+
+        if (!expr) return '';
+
+        expr = expr.replace(/^\(?\s*(?:f\s*\(\s*(?:x\s*,\s*y|x|y|z)\s*\)|[xyz])\s*\)?\s*$/i, '');
+        return expr;
+      }
 
       function nextColor() {
         const used = items.filter(i => i.type === 'surface').length;
@@ -552,28 +578,40 @@
       }
 
       function drawAxes() {
-        const axes = [
-          { x: 0, y: 0, z: 0 },
-          { x: 1, y: 0, z: 0 },
-          { x: 0, y: 1, z: 0 },
-          { x: 0, y: 0, z: 1 }
-        ].map(p => project3D(rotatePoint(p, view.rotX, view.rotY)));
+        const axisPairs = [
+          [
+            { x: view.xMin, y: 0, z: 0 },
+            { x: view.xMax, y: 0, z: 0 }
+          ],
+          [
+            { x: 0, y: view.yMin, z: 0 },
+            { x: 0, y: view.yMax, z: 0 }
+          ],
+          [
+            { x: 0, y: 0, z: view.zMin },
+            { x: 0, y: 0, z: view.zMax }
+          ]
+        ];
 
-        ctx.strokeStyle = 'rgba(255,255,255,0.18)';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(axes[0].x, axes[0].y);
-        ctx.lineTo(axes[1].x, axes[1].y);
-        ctx.moveTo(axes[0].x, axes[0].y);
-        ctx.lineTo(axes[2].x, axes[2].y);
-        ctx.moveTo(axes[0].x, axes[0].y);
-        ctx.lineTo(axes[3].x, axes[3].y);
-        ctx.stroke();
+        ctx.lineWidth = 1.8;
+        ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+
+        axisPairs.forEach(([a, b]) => {
+          const pa = project3D(rotatePoint(a, view.rotX, view.rotY));
+          const pb = project3D(rotatePoint(b, view.rotX, view.rotY));
+          ctx.beginPath();
+          ctx.moveTo(pa.x, pa.y);
+          ctx.lineTo(pb.x, pb.y);
+          ctx.stroke();
+        });
       }
 
       function drawSurface(item) {
+        const normalized = normalizeExpression(item.value);
+        if (!normalized) return;
+
         try {
-          const expr = Parser.parse(item.value);
+          const expr = Parser.parse(normalized);
           const xMin = view.xMin, xMax = view.xMax;
           const yMin = view.yMin, yMax = view.yMax;
           const step = 0.5;
