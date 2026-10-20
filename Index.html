@@ -1,1 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Friendly Graphing Calculator</title>
+    <!-- Tailwind CSS for sleek, modern UI layout -->
+    <script src="https://jsdelivr.net"></script>
+    <!-- Robust math parsing engine for explicit functions and implicit evaluation -->
+    <script src="https://jsdelivr.net"></script>
+    <style>
+        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        canvas { cursor: grab; }
+        canvas:active { cursor: grabbing; }
+    </style>
+</head>
+<body class="w-screen h-screen flex bg-slate-900 text-slate-100 overflow-hidden select-none">
 
+    <!-- LEFT SIDEBAR: Expression Manager & Variables -->
+    <aside class="w-96 bg-slate-800 border-r border-slate-700 flex flex-col h-full z-10 shadow-2xl">
+        <div class="p-4 border-b border-slate-700 bg-slate-850 flex justify-between items-center">
+            <h1 class="text-xl font-bold tracking-tight text-emerald-400 flex items-center gap-2">
+                <span>📊</span> SmartGrapher
+            </h1>
+            <button onclick="resetToDefaultView()" class="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 transition rounded text-slate-300">
+                Reset View
+            </button>
+        </div>
+
+        <!-- Expression Stack Container -->
+        <div id="expressionList" class="flex-1 overflow-y-auto p-4 space-y-4">
+            <!-- Dynamic elements populate here -->
+        </div>
+
+        <!-- Action Tray -->
+        <div class="p-4 border-t border-slate-700 bg-slate-850 space-y-2">
+            <button onclick="addExpressionItem('equation')" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 transition font-medium rounded-lg shadow flex items-center justify-center gap-2">
+                <span>＋</span> Add Equation (y = ...)
+            </button>
+            <button onclick="addExpressionItem('slider')" class="w-full py-2.5 bg-slate-700 hover:bg-slate-600 transition font-medium rounded-lg flex items-center justify-center gap-2 text-slate-300">
+                <span>🎚️</span> Add Variable Slider
+            </button>
+        </div>
+    </aside>
+
+    <!-- MAIN INTERACTIVE CANVAS AREA -->
+    <main class="flex-1 relative bg-slate-950">
+        <!-- Floating Viewport Utility Bar -->
+        <div class="absolute top-4 right-4 flex gap-2 z-10">
+            <button onclick="zoomViewport(0.75)" class="w-10 h-10 bg-slate-800 hover:bg-slate-700 transition border border-slate-600 rounded-xl font-bold text-lg shadow flex items-center justify-center">＋</button>
+            <button onclick="zoomViewport(1.33)" class="w-10 h-10 bg-slate-800 hover:bg-slate-700 transition border border-slate-600 rounded-xl font-bold text-lg shadow flex items-center justify-center">－</button>
+        </div>
+
+        <canvas id="graphCanvas" class="w-full h-full block"></canvas>
+    </main>
+
+    <script>
+        const Parser = exprEval.Parser;
+        const canvas = document.getElementById('graphCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // App State Management
+        let items = [
+            { id: '1', type: 'equation', value: 'x^2 - a', color: '#10b981', visible: true },
+            { id: '2', type: 'slider', variable: 'a', value: 2, min: -10, max: 10, step: 0.1 }
+        ];
+
+        // Coordinate Window Configurations
+        let view = { xMin: -10, xMax: 10, yMin: -10, yMax: 10 };
+        let isDragging = false;
+        let lastMousePos = { x: 0, y: 0 };
+
+        // Color Swatch Bank
+        const palette = ['#10b981', '#3b82f6', '#ec4899', '#f59e0b', '#8b5cf6', '#ef4444'];
+
+        function init() {
+            resizeCanvas();
+            renderExpressionList();
+            draw();
+
+            window.addEventListener('resize', () => { resizeCanvas(); draw(); });
+            
+            // Mouse Interaction Hooks
+            canvas.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                lastMousePos = { x: e.clientX, y: e.clientY };
+            });
+
+            window.addEventListener('mouseup', () => isDragging = false);
+
+            canvas.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                
+                const dx = e.clientX - lastMousePos.x;
+                const dy = e.clientY - lastMousePos.y;
+                
+                const unitsPerPixelX = (view.xMax - view.xMin) / canvas.width;
+                const unitsPerPixelY = (view.yMax - view.yMin) / canvas.height;
+
+                view.xMin -= dx * unitsPerPixelX;
+                view.xMax -= dx * unitsPerPixelX;
+                // Canvas coordinates invert Y axis orientation
+                view.yMin += dy * unitsPerPixelY;
+                view.yMax += dy * unitsPerPixelY;
+
+                lastMousePos = { x: e.clientX, y: e.clientY };
+                draw();
+            });
+
+            canvas.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const factor = e.deltaY > 0 ? 1.1 : 0.9;
+                zoomViewport(factor);
+            }, { passive: false });
+        }
+
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+
+        function resetToDefaultView() {
+            view = { xMin: -10, xMax: 10, yMin: -10, yMax: 10 };
+            draw();
+        }
+
+        function zoomViewport(factor) {
+            const xCenter = (view.xMin + view.xMax) / 2;
+            const yCenter = (view.yMin + view.yMax) / 2;
+            const xRadius = ((view.xMax - view.xMin) * factor) / 2;
+            const yRadius = ((view.yMax - view.yMin) * factor) / 2;
+
+            view.xMin = xCenter - xRadius;
+            view.xMax = xCenter + xRadius;
+            view.yMin = yCenter - yRadius;
+            view.yMax = yCenter + yRadius;
+            draw();
+        }
+
+        // Structural UI Injector
+        function renderExpressionList() {
+            const container = document.getElementById('expressionList');
+            container.innerHTML = '';
+
+            items.forEach((item, index) => {
+                const row = document.createElement('div');
+                row.className = "p-3 bg-slate-700/40 border border-slate-600/50 rounded-xl space-y-2 relative group transition hover:border-slate-500";
+
+                if (item.type === 'equation') {
+                    row.innerHTML = `
+                        <div class="flex items-center gap-2">
+                            <button onclick="toggleVisibility('${item.id}')" class="w-5 h-5 rounded-full flex items-center justify-center border transition" style="background-color: ${item.visible ? item.color : 'transparent'}; border-color: ${item.color}">
+                                ${item.visible ? '✓' : ''}
+                            </button>
+                            <span class="text-slate-400 font-medium font-mono text-sm">y =</span>
+                            <input type="text" value="${item.value}" oninput="updateItemValue('${item.id}', this.value)" 
+                                class="flex-1 bg-slate-800/80 border border-slate-600 rounded px-2 py-1 font-mono text-emerald-300 focus:outline-none focus:border-emerald-500 text-sm">
+                            <button onclick="deleteItem('${item.id}')" class="text-slate-500 hover:text-rose-400 font-bold px-1 transition text-sm">✕</button>
+                        </div>
+                    `;
+                } else if (item.type === 'slider') {
+                    row.innerHTML = `
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2">
+                                <span class="text-amber-400 font-bold font-mono">var</span>
+                                <input type="text" value="${item.variable}" maxlength="3" oninput="updateSliderVariable('${item.id}', this.value)"
+                                    class="w-10 text-center bg-slate-800 border border-slate-600 rounded py-0.5 font-mono text-sm focus:outline-none focus:border-amber-500">
+                                <span class="text-slate-400 font-mono text-xs">=</span>
+                                <span class="flex-1 font-mono text-slate-200 text-sm font-semibold">${item.value}</span>
+                                <button onclick="deleteItem('${item.id}')" class="text-slate-500 hover:text-rose-400 font-bold px-1 transition text-sm">✕</button>
+                            </div>
+                            <input type="range" min="${item.min}" max="${item.max}" step="${item.step}" value="${item.value}" 
+                                oninput="updateSliderValue('${item.id}', this.value)" class="w-full accent-amber-500 cursor-pointer h-1.5 bg-slate-600 rounded-lg appearance-none">
+                        </div>
+                    `;
+                }
+                container.appendChild(row);
+            });
+        }
+
+        function addExpressionItem(type) {
+            const id = Math.random().toString(36).substr(2, 9);
+            if (type === 'equation') {
+                const color = palette[items.filter(i => i.type === 'equation').length % palette.length];
+                items.push({ id, type, value: '2x', color, visible: true });
+            } else {
+                // Discover a pristine single variable name fallback
+                const taken = items.filter(i => i.type === 'slider').map(i => i.variable);
+                const available = ['a', 'b', 'c', 'k', 'm', 'n', 'p'].find(v => !taken.includes(v)) || 'k';
+                items.push({ id, type, variable: available, value: 1, min: -10, max: 10, step: 0.1 });
+            }
+            renderExpressionList();
+            draw();
+        }
+
+        function updateItemValue(id, val) {
+Use code with caution.
+const item = items.find(i => i.id === id);
+if (item) item.value = val;
+draw();
+}
+function updateSliderVariable(id, val) {
+const item = items.find(i => i.id === id);
+if (item) item.variable = val.replace(/[^a-zA-Z]/g, ''); // Ensure alphabetical bounds
+draw();
+}
+function updateSliderValue(id, val) {
+const item = items.find(i => i.id === id);
+if (item) {
+item.value = parseFloat(val);
+// Trigger live UI dynamic numerical refresh labels
+renderExpressionList();
+draw();
+}
+}
+function toggleVisibility(id) {
+const item = items.find(i => i.id === id);
+if (item) item.visible = !item.visible;
+renderExpressionList();
+draw();
+}
+function deleteItem(id) {
+items = items.filter(i => i.id !== id);
+renderExpressionList();
+draw();
+}
+// Translation Maps: Graph Space Coordinates to Pixel Space Matrices
+function toPixelX(graphX) {
+return ((graphX - view.xMin) / (view.xMax - view.xMin)) * canvas.width;
+}
+// Canvas coordinates invert Y axis orientation
+function toPixelY(graphY) {
+return canvas.height - (((graphY - view.yMin) / (view.yMax - view.yMin)) * canvas.height);
+}
+function toGraphX(pixelX) {
+return view.xMin + (pixelX / canvas.width) * (view.xMax - view.xMin);
+}
+// Core Render Execution Engine
+function draw() {
+ctx.clearRect(0, 0, canvas.width, canvas.height);
+drawGrid();
+// Build Context Sandbox Parameters from active variable sliders
+const scope = {};
+items.forEach(item => {
+if (item.type === 'slider' && item.variable) {
+scope[item.variable] = item.value;
+}
+});
+// Iterate over algebraic lines to plot
+items.forEach(item => {
+if (item.type !== 'equation' || !item.visible || !item.value.trim()) return;
+try {
+// Pre-compile algebraic token definitions
+const expr = Parser.parse(item.value);
+ctx.beginPath();
+ctx.strokeStyle = item.color;
+ctx.lineWidth = 3;
+ctx.lineJoin = 'round';
+let first = true;
+// Plot across horizontal resolution width pixels
+for (let px = 0; px <= canvas.width; px += 2) {
+const gx = toGraphX(px);
+scope.x = gx; // Bind independent coordinate position
+const gy = expr.evaluate(scope);
+if (typeof gy === 'number' && !isNaN(gy) && isFinite(gy)) {
+const py = toPixelY(gy);
+if (first) {
+ctx.moveTo(px, py);
+first = false;
+} else {
+ctx.lineTo(px, py);
+}
+} else {
+first = true; // Break tracking for coordinate gaps (e.g. asymptotes)
+}
+}
+ctx.stroke();
+} catch (err) {
+// Fail silently for half-formed user parsing input streams
+}
+});
+}
+function drawGrid() {
+const xRange = view.xMax - view.xMin;
+// Calibrate adaptive step scaling arrays based on logarithmic sizing calculations
+const rawStep = xRange / 10;
+const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
+const ratio = rawStep / magnitude;
+let step = magnitude;
+if (ratio > 5) step = 5 * magnitude;
+else if (ratio > 2) step = 2 * magnitude;
+ctx.lineWidth = 1;
+// Draw Minor / Major Grid Lines Matrix
+const firstX = Math.ceil(view.xMin / step) * step;
+for (let gx = firstX; gx <= view.xMax; gx += step) {
+const px = toPixelX(gx);
+const isAxis = Math.abs(gx) < step * 0.001;
+ctx.strokeStyle = isAxis ? '#94a3b8' : '#334155';
+ctx.lineWidth = isAxis ? 2 : 1;
+ctx.beginPath();
+ctx.moveTo(px, 0);
+ctx.lineTo(px, canvas.height);
+ctx.stroke();
+// Axis numerical tick marks layout configuration
+if (!isAxis) {
+ctx.fillStyle = '#64748b';
+ctx.font = '10px monospace';
+const py = Math.max(10, Math.min(canvas.height - 5, toPixelY(0) + 12));
+ctx.fillText(Number(gx.toFixed(4)), px + 4, py);
+}
+}
+const firstY = Math.ceil(view.yMin / step) * step;
+for (let gy = firstY; gy <= view.yMax; gy += step) {
+const py = toPixelY(gy);
+const isAxis = Math.abs(gy) < step * 0.001;
+ctx.strokeStyle = isAxis ? '#94a3b8' : '#334155';
+ctx.lineWidth = isAxis ? 2 : 1;
+ctx.beginPath();
+ctx.moveTo(0, py);
+ctx.lineTo(canvas.width, py);
+ctx.stroke();
+if (!isAxis) {
+ctx.fillStyle = '#64748b';
+ctx.font = '10px monospace';
+const px = Math.max(5, Math.min(canvas.width - 30, toPixelX(0) + 6));
+ctx.fillText(Number(gy.toFixed(4)), px, py - 4);
+}
+}
+}
+// Start initialization routine
+init();
