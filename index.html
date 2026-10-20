@@ -386,7 +386,7 @@
         zMax: 8,
         rotX: -0.82,
         rotY: 0.9,
-        zoom: 0.68
+        zoom: 0.38
       };
 
       let view = { ...defaultView };
@@ -413,23 +413,34 @@
           .replace(/×/g, '*')
           .replace(/÷/g, '/')
           .replace(/·/g, '*')
+          .replace(/,/g, '')
           .replace(/\s+/g, '');
 
-        const eqIndex = expr.indexOf('=');
-        if (eqIndex !== -1) {
-          expr = expr.slice(eqIndex + 1).trim();
+        const equalIndex = expr.indexOf('=');
+        if (equalIndex !== -1) {
+          const left = expr.slice(0, equalIndex).replace(/\s+/g, '');
+          const right = expr.slice(equalIndex + 1).trim();
+
+          const plainVariableLike = /^(?:[a-zA-Z]+|[a-zA-Z]+\([^)]*\))$/i;
+          if (right && plainVariableLike.test(left)) {
+            expr = right;
+          }
         }
 
-        expr = expr.replace(/^f\s*\(\s*(?:x\s*,\s*y|x|y|z)\s*\)\s*$/i, '');
+        expr = expr.replace(/^f\s*\(\s*(?:x\s*,\s*y|x|y|z)\s*\)\s*=\s*/i, '');
+        expr = expr.replace(/^g\s*\(\s*(?:x\s*,\s*y|x|y|z)\s*\)\s*=\s*/i, '');
+        expr = expr.replace(/^h\s*\(\s*(?:x\s*,\s*y|x|y|z)\s*\)\s*=\s*/i, '');
+        expr = expr.replace(/^z\s*=\s*/i, '');
+        expr = expr.replace(/^y\s*=\s*/i, '');
+        expr = expr.replace(/^x\s*=\s*/i, '');
 
         expr = expr.replace(/(sin|cos|tan|asin|acos|atan|sqrt|log|ln|abs|exp|sec|csc|cot)\s+(?=[a-zA-Z0-9(])/gi, '$1(');
         expr = expr.replace(/(sin|cos|tan|asin|acos|atan|sqrt|log|ln|abs|exp|sec|csc|cot)\s*(?=[a-zA-Z0-9(])/gi, '$1');
 
         expr = expr.replace(/([0-9\)])(?=(?:sin|cos|tan|asin|acos|atan|sqrt|log|ln|abs|exp|sec|csc|cot|x|y|z|pi|e|\())/gi, '$1*');
         expr = expr.replace(/([a-zA-Z])(?=(?:[0-9\(]))/g, '$1*');
-
         expr = expr.replace(/(\d)(?=(?:x|y|z|pi|e))/gi, '$1*');
-        expr = expr.replace(/(\))(?=(?:x|y|z|pi|e|sin|cos|tan|asin|acos|atan|sqrt|log|ln|abs|exp))/gi, '$1*');
+        expr = expr.replace(/(\))(?=(?:x|y|z|pi|e|sin|cos|tan|asin|acos|atan|sqrt|log|ln|abs|exp|sec|csc|cot))/gi, '$1*');
 
         if (!expr) return '';
         return expr;
