@@ -416,34 +416,76 @@
           .replace(/,/g, '')
           .replace(/\s+/g, '');
 
-        const equalIndex = expr.indexOf('=');
-        if (equalIndex !== -1) {
-          const left = expr.slice(0, equalIndex).replace(/\s+/g, '');
-          const right = expr.slice(equalIndex + 1).trim();
+        const eqIndex = expr.indexOf('=');
+        if (eqIndex !== -1) {
+          const left = expr.slice(0, eqIndex).trim();
+          const right = expr.slice(eqIndex + 1).trim();
 
-          const plainVariableLike = /^(?:[a-zA-Z]+|[a-zA-Z]+\([^)]*\))$/i;
-          if (right && plainVariableLike.test(left)) {
-            expr = right;
+          if (!right) return '';
+          const leftUsesVar = /[xyz]/i.test(left);
+          const rightUsesVar = /[xyz]/i.test(right);
+
+          if (leftUsesVar || rightUsesVar) {
+            if (/^(?:z|y|x)$/i.test(left)) {
+              return right;
+            }
+            return `(${left})-(${right})`;
           }
+
+          return right;
         }
 
-        expr = expr.replace(/^f\s*\(\s*(?:x\s*,\s*y|x|y|z)\s*\)\s*=\s*/i, '');
-        expr = expr.replace(/^g\s*\(\s*(?:x\s*,\s*y|x|y|z)\s*\)\s*=\s*/i, '');
-        expr = expr.replace(/^h\s*\(\s*(?:x\s*,\s*y|x|y|z)\s*\)\s*=\s*/i, '');
-        expr = expr.replace(/^z\s*=\s*/i, '');
-        expr = expr.replace(/^y\s*=\s*/i, '');
-        expr = expr.replace(/^x\s*=\s*/i, '');
+        expr = expr.replace(/^f\s*\(\s*(?:x\s*,\s*y|x|y|z)\s*\)\s*/i, '');
+        expr = expr.replace(/^g\s*\(\s*(?:x\s*,\s*y|x|y|z)\s*\)\s*/i, '');
+        expr = expr.replace(/^h\s*\(\s*(?:x\s*,\s*y|x|y|z)\s*\)\s*/i, '');
 
         expr = expr.replace(/(sin|cos|tan|asin|acos|atan|sqrt|log|ln|abs|exp|sec|csc|cot)\s+(?=[a-zA-Z0-9(])/gi, '$1(');
         expr = expr.replace(/(sin|cos|tan|asin|acos|atan|sqrt|log|ln|abs|exp|sec|csc|cot)\s*(?=[a-zA-Z0-9(])/gi, '$1');
-
         expr = expr.replace(/([0-9\)])(?=(?:sin|cos|tan|asin|acos|atan|sqrt|log|ln|abs|exp|sec|csc|cot|x|y|z|pi|e|\())/gi, '$1*');
         expr = expr.replace(/([a-zA-Z])(?=(?:[0-9\(]))/g, '$1*');
         expr = expr.replace(/(\d)(?=(?:x|y|z|pi|e))/gi, '$1*');
         expr = expr.replace(/(\))(?=(?:x|y|z|pi|e|sin|cos|tan|asin|acos|atan|sqrt|log|ln|abs|exp|sec|csc|cot))/gi, '$1*');
 
-        if (!expr) return '';
         return expr;
+      }
+
+      function parseSurfaceExpression(raw) {
+        let expr = String(raw || '').trim();
+        if (!expr) return { mode: 'empty', expression: '' };
+
+        expr = normalizeExpression(expr);
+        if (!expr) return { mode: 'empty', expression: '' };
+
+        const eqIndex = expr.indexOf('=');
+        if (eqIndex === -1) {
+          return { mode: 'explicit', expression: expr };
+        }
+
+        const left = expr.slice(0, eqIndex).trim();
+        const right = expr.slice(eqIndex + 1).trim();
+
+        if (!left || !right) {
+          return { mode: 'explicit', expression: expr };
+        }
+
+        const leftIsZ = /^z$/i.test(left);
+        const rightIsZ = /^z$/i.test(right);
+
+        if (leftIsZ || rightIsZ) {
+          return { mode: 'explicit', expression: leftIsZ ? right : left };
+        }
+
+        const leftHasZ = /z/i.test(left);
+        const rightHasZ = /z/i.test(right);
+        if (leftHasZ || rightHasZ || /[xyz]/i.test(left) && /[xyz]/i.test(right)) {
+          return { mode: 'implicit', expression: `(${left})-(${right})` };
+        }
+
+        if (/[xy]/i.test(left) && /[xy]/i.test(right)) {
+          return { mode: 'curve', expression: `(${left})-(${right})` };
+        }
+
+        return { mode: 'explicit', expression: right };
       }
 
       function nextColor() {
@@ -620,54 +662,135 @@
       }
 
       function drawSurface(item) {
-        const normalized = normalizeExpression(item.value);
-        if (!normalized) return;
+        const parsed = parseSurfaceExpression(item.value);
+        if (!parsed.expression || parsed.mode === 'empty') return;
 
         try {
-          const expr = Parser.parse(normalized);
-          const xMin = view.xMin, xMax = view.xMax;
-          const yMin = view.yMin, yMax = view.yMax;
-          const step = 0.5;
-          const mesh = [];
+          if (parsed.mode === 'explicit') {
+            const expr = Parser.parse(parsed.expression);
+            const xMin = view.xMin, xMax = view.xMax;
+            const yMin = view.yMin, yMax = view.yMax;
+            const step = 0.5;
+            const mesh = [];
 
-          for (let gx = xMin; gx <= xMax + 0.0001; gx += step) {
-            const row = [];
-            for (let gy = yMin; gy <= yMax + 0.0001; gy += step) {
-              const scope = { x: gx, y: gy };
-              const zVal = expr.evaluate(scope);
-              if (typeof zVal === 'number' && Number.isFinite(zVal)) {
-                row.push(project3D(rotatePoint({ x: gx, y: gy, z: zVal }, view.rotX, view.rotY)));
-              } else {
-                row.push(null);
+            for (let gx = xMin; gx <= xMax + 0.0001; gx += step) {
+              const row = [];
+              for (let gy = yMin; gy <= yMax + 0.0001; gy += step) {
+                const scope = { x: gx, y: gy };
+                const zVal = expr.evaluate(scope);
+                if (typeof zVal === 'number' && Number.isFinite(zVal)) {
+                  row.push(project3D(rotatePoint({ x: gx, y: gy, z: zVal }, view.rotX, view.rotY)));
+                } else {
+                  row.push(null);
+                }
+              }
+              mesh.push(row);
+            }
+
+            for (let i = 0; i < mesh.length - 1; i++) {
+              for (let j = 0; j < mesh[i].length - 1; j++) {
+                const a = mesh[i][j];
+                const b = mesh[i][j + 1];
+                const c = mesh[i + 1][j];
+                const d = mesh[i + 1][j + 1];
+                const quads = [[a, b, d, c]];
+                quads.forEach(([p1, p2, p3, p4]) => {
+                  if (p1 && p2 && p3 && p4) {
+                    ctx.beginPath();
+                    ctx.moveTo(p1.x, p1.y);
+                    ctx.lineTo(p2.x, p2.y);
+                    ctx.lineTo(p3.x, p3.y);
+                    ctx.lineTo(p4.x, p4.y);
+                    ctx.closePath();
+                    ctx.fillStyle = hexToRgba(item.color, 0.18);
+                    ctx.fill();
+                    ctx.strokeStyle = hexToRgba(item.color, 0.8);
+                    ctx.lineWidth = 0.9;
+                    ctx.stroke();
+                  }
+                });
               }
             }
-            mesh.push(row);
+            return;
           }
 
-          for (let i = 0; i < mesh.length - 1; i++) {
-            for (let j = 0; j < mesh[i].length - 1; j++) {
-              const a = mesh[i][j];
-              const b = mesh[i][j + 1];
-              const c = mesh[i + 1][j];
-              const d = mesh[i + 1][j + 1];
+          if (parsed.mode === 'implicit') {
+            const fn = Parser.parse(parsed.expression);
+            const xMin = view.xMin, xMax = view.xMax;
+            const yMin = view.yMin, yMax = view.yMax;
+            const zMin = view.zMin, zMax = view.zMax;
+            const step = 0.6;
+            const mesh = [];
 
-              const quads = [[a, b, d, c]];
-              quads.forEach(([p1, p2, p3, p4]) => {
-                if (p1 && p2 && p3 && p4) {
-                  ctx.beginPath();
-                  ctx.moveTo(p1.x, p1.y);
-                  ctx.lineTo(p2.x, p2.y);
-                  ctx.lineTo(p3.x, p3.y);
-                  ctx.lineTo(p4.x, p4.y);
-                  ctx.closePath();
-                  ctx.fillStyle = hexToRgba(item.color, 0.18);
-                  ctx.fill();
-                  ctx.strokeStyle = hexToRgba(item.color, 0.8);
-                  ctx.lineWidth = 0.9;
-                  ctx.stroke();
+            for (let gx = xMin; gx <= xMax + 0.0001; gx += step) {
+              const row = [];
+              for (let gy = yMin; gy <= yMax + 0.0001; gy += step) {
+                let bestZ = null;
+                let bestValue = Infinity;
+                for (let gz = zMin; gz <= zMax + 0.0001; gz += step) {
+                  const value = Math.abs(fn.evaluate({ x: gx, y: gy, z: gz }));
+                  if (value < bestValue) {
+                    bestValue = value;
+                    bestZ = gz;
+                  }
                 }
-              });
+
+                if (bestZ !== null && Number.isFinite(bestZ) && bestValue < 0.8) {
+                  row.push(project3D(rotatePoint({ x: gx, y: gy, z: bestZ }, view.rotX, view.rotY)));
+                } else {
+                  row.push(null);
+                }
+              }
+              mesh.push(row);
             }
+
+            for (let i = 0; i < mesh.length - 1; i++) {
+              for (let j = 0; j < mesh[i].length - 1; j++) {
+                const a = mesh[i][j];
+                const b = mesh[i][j + 1];
+                const c = mesh[i + 1][j];
+                const d = mesh[i + 1][j + 1];
+                const quads = [[a, b, d, c]];
+                quads.forEach(([p1, p2, p3, p4]) => {
+                  if (p1 && p2 && p3 && p4) {
+                    ctx.beginPath();
+                    ctx.moveTo(p1.x, p1.y);
+                    ctx.lineTo(p2.x, p2.y);
+                    ctx.lineTo(p3.x, p3.y);
+                    ctx.lineTo(p4.x, p4.y);
+                    ctx.closePath();
+                    ctx.fillStyle = hexToRgba(item.color, 0.2);
+                    ctx.fill();
+                    ctx.strokeStyle = hexToRgba(item.color, 0.8);
+                    ctx.lineWidth = 0.8;
+                    ctx.stroke();
+                  }
+                });
+              }
+            }
+            return;
+          }
+
+          if (parsed.mode === 'curve') {
+            const expr = Parser.parse(parsed.expression.replace(/\([^)]*\)-\(([^)]*)\)/, '$1'));
+            const xMin = view.xMin, xMax = view.xMax;
+            const step = 0.1;
+            ctx.beginPath();
+            let started = false;
+            for (let x = xMin; x <= xMax + 0.0001; x += step) {
+              const scope = { x, y: 0, z: 0 };
+              const value = expr.evaluate(scope);
+              const point = project3D(rotatePoint({ x, y: value, z: 0 }, view.rotX, view.rotY));
+              if (!started) {
+                ctx.moveTo(point.x, point.y);
+                started = true;
+              } else {
+                ctx.lineTo(point.x, point.y);
+              }
+            }
+            ctx.strokeStyle = hexToRgba(item.color, 0.9);
+            ctx.lineWidth = 1.2;
+            ctx.stroke();
           }
         } catch (err) {
           // invalid expression while editing
