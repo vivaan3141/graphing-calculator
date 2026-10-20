@@ -378,15 +378,15 @@
       const palette = ['#5ea5ff', '#64d7c5', '#ffb454', '#f67cc4', '#8c9aff', '#ff7c7c'];
 
       const defaultView = {
-        xMin: -5,
-        xMax: 5,
-        yMin: -5,
-        yMax: 5,
-        zMin: -5,
-        zMax: 5,
+        xMin: -8,
+        xMax: 8,
+        yMin: -8,
+        yMax: 8,
+        zMin: -8,
+        zMax: 8,
         rotX: -0.82,
         rotY: 0.9,
-        zoom: 1
+        zoom: 0.68
       };
 
       let view = { ...defaultView };
@@ -406,6 +406,8 @@
         if (!expr) return '';
 
         expr = expr
+          .replace(/π/g, 'pi')
+          .replace(/∞/g, '')
           .replace(/−/g, '-')
           .replace(/–/g, '-')
           .replace(/×/g, '*')
@@ -418,9 +420,18 @@
           expr = expr.slice(eqIndex + 1).trim();
         }
 
-        if (!expr) return '';
+        expr = expr.replace(/^f\s*\(\s*(?:x\s*,\s*y|x|y|z)\s*\)\s*$/i, '');
 
-        expr = expr.replace(/^\(?\s*(?:f\s*\(\s*(?:x\s*,\s*y|x|y|z)\s*\)|[xyz])\s*\)?\s*$/i, '');
+        expr = expr.replace(/(sin|cos|tan|asin|acos|atan|sqrt|log|ln|abs|exp|sec|csc|cot)\s+(?=[a-zA-Z0-9(])/gi, '$1(');
+        expr = expr.replace(/(sin|cos|tan|asin|acos|atan|sqrt|log|ln|abs|exp|sec|csc|cot)\s*(?=[a-zA-Z0-9(])/gi, '$1');
+
+        expr = expr.replace(/([0-9\)])(?=(?:sin|cos|tan|asin|acos|atan|sqrt|log|ln|abs|exp|sec|csc|cot|x|y|z|pi|e|\())/gi, '$1*');
+        expr = expr.replace(/([a-zA-Z])(?=(?:[0-9\(]))/g, '$1*');
+
+        expr = expr.replace(/(\d)(?=(?:x|y|z|pi|e))/gi, '$1*');
+        expr = expr.replace(/(\))(?=(?:x|y|z|pi|e|sin|cos|tan|asin|acos|atan|sqrt|log|ln|abs|exp))/gi, '$1*');
+
+        if (!expr) return '';
         return expr;
       }
 
@@ -579,18 +590,9 @@
 
       function drawAxes() {
         const axisPairs = [
-          [
-            { x: view.xMin, y: 0, z: 0 },
-            { x: view.xMax, y: 0, z: 0 }
-          ],
-          [
-            { x: 0, y: view.yMin, z: 0 },
-            { x: 0, y: view.yMax, z: 0 }
-          ],
-          [
-            { x: 0, y: 0, z: view.zMin },
-            { x: 0, y: 0, z: view.zMax }
-          ]
+          [ { x: view.xMin, y: 0, z: 0 }, { x: view.xMax, y: 0, z: 0 } ],
+          [ { x: 0, y: view.yMin, z: 0 }, { x: 0, y: view.yMax, z: 0 } ],
+          [ { x: 0, y: 0, z: view.zMin }, { x: 0, y: 0, z: view.zMax } ]
         ];
 
         ctx.lineWidth = 1.8;
@@ -620,7 +622,8 @@
           for (let gx = xMin; gx <= xMax + 0.0001; gx += step) {
             const row = [];
             for (let gy = yMin; gy <= yMax + 0.0001; gy += step) {
-              const zVal = expr.evaluate({ x: gx, y: gy });
+              const scope = { x: gx, y: gy };
+              const zVal = expr.evaluate(scope);
               if (typeof zVal === 'number' && Number.isFinite(zVal)) {
                 row.push(project3D(rotatePoint({ x: gx, y: gy, z: zVal }, view.rotX, view.rotY)));
               } else {
