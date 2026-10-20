@@ -3,34 +3,33 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Desmos 3D Graphing Calculator — Dark Mode</title>
+    <title>3D Graphing Calculator</title>
     <script src="https://cdn.jsdelivr.net/npm/expr-eval@2.0.2/dist/bundle.min.js"></script>
     <style>
       :root {
-        --bg: #0d1117;
-        --bg-2: #101720;
-        --panel: #121a22;
-        --panel-2: #171e29;
-        --panel-3: #1d2732;
-        --line: rgba(255, 255, 255, 0.08);
-        --line-strong: rgba(255, 255, 255, 0.12);
-        --soft: rgba(255,255,255,0.035);
+        --bg: #0e1117;
+        --bg-2: #10161d;
+        --panel: #151c24;
+        --panel-2: #191f2a;
+        --panel-3: #1f2833;
+        --panel-4: #222b36;
+        --line: rgba(255,255,255,0.09);
+        --line-strong: rgba(255,255,255,0.14);
         --text: #edf4ff;
-        --muted: #9ea8b5;
-        --muted-2: #7a8797;
+        --muted: #a4adba;
+        --muted-2: #7d8a99;
         --accent: #5ea5ff;
-        --accent-2: #64d2c5;
-        --shadow: rgba(0, 0, 0, 0.36);
-        --button: #1a2330;
-        --button-hover: #212d3b;
-        --green: #59d7a4;
-        --red: #ff7d7d;
+        --accent-2: #6ad7c3;
+        --success: #4cd8a5;
+        --danger: #ff7a7a;
+        --shadow: rgba(0,0,0,0.36);
       }
 
       * { box-sizing: border-box; }
 
       html, body {
         margin: 0;
+        width: 100%;
         height: 100%;
         background: var(--bg);
         color: var(--text);
@@ -51,59 +50,59 @@
         display: flex;
         width: 100%;
         min-height: 100vh;
-        background: linear-gradient(180deg, #0d1117 0%, #0c1219 100%);
+        background: linear-gradient(180deg, #0f141b 0%, #0b1016 100%);
       }
 
       .sidebar {
-        width: 320px;
+        width: 318px;
         min-width: 280px;
-        background: linear-gradient(180deg, rgba(18,23,30,1), rgba(14,19,25,1));
+        background: linear-gradient(180deg, rgba(18,22,28,1), rgba(13,17,22,1));
         border-right: 1px solid var(--line);
         display: flex;
         flex-direction: column;
       }
 
       .sidebar-header {
-        height: 62px;
         display: flex;
         align-items: center;
         justify-content: space-between;
+        height: 62px;
         padding: 12px 14px 11px;
         border-bottom: 1px solid var(--line);
-        background: rgba(16,19,25,0.82);
+        background: rgba(16,20,25,0.7);
       }
 
       .brand {
         display: flex;
         align-items: center;
         gap: 10px;
-        font-size: 13px;
-        letter-spacing: 0.02em;
         font-weight: 700;
-        color: var(--text);
+        font-size: 14px;
+        letter-spacing: 0.02em;
       }
 
-      .brand-badge {
+      .brand-mark {
         width: 24px;
         height: 24px;
         border-radius: 7px;
+        background: linear-gradient(135deg, rgba(94,165,255,0.18), rgba(106,215,195,0.12));
+        border: 1px solid rgba(255,255,255,0.06);
+        color: #8ebeff;
         display: grid;
         place-items: center;
-        background: linear-gradient(135deg, rgba(94,165,255,0.18), rgba(99,214,197,0.12));
-        border: 1px solid rgba(255,255,255,0.06);
-        color: #7cc4ff;
-        font-size: 12px;
+        font-size: 11px;
+        font-weight: 800;
       }
 
       .reset-btn {
+        border: 1px solid rgba(255,255,255,0.08);
         background: rgba(255,255,255,0.02);
         color: var(--muted);
-        border: 1px solid rgba(255,255,255,0.07);
         border-radius: 8px;
         padding: 7px 10px;
-        cursor: pointer;
         font-size: 12px;
         font-weight: 700;
+        cursor: pointer;
       }
 
       .reset-btn:hover {
@@ -113,7 +112,7 @@
       .expr-list {
         flex: 1;
         overflow-y: auto;
-        padding: 12px 10px 16px;
+        padding: 12px 10px 14px;
         display: flex;
         flex-direction: column;
         gap: 10px;
@@ -132,40 +131,39 @@
         gap: 8px;
       }
 
-      .visibility-toggle {
+      .toggle {
         width: 18px;
         height: 18px;
-        border-radius: 50%;
         border: 1px solid rgba(255,255,255,0.18);
         background: rgba(255,255,255,0.03);
+        border-radius: 50%;
         color: white;
-        font-size: 11px;
         display: grid;
         place-items: center;
+        font-size: 11px;
         cursor: pointer;
         flex-shrink: 0;
       }
 
-      .visibility-toggle.on {
-        background: rgba(89,215,164,0.9);
-        border-color: rgba(89,215,164,1);
-        color: #0b1117;
+      .toggle.on {
+        background: rgba(76,216,165,0.9);
+        border-color: rgba(76,216,165,1);
+        color: #0a1017;
       }
 
       .expr-label {
         color: var(--muted-2);
-        font-size: 12px;
-        letter-spacing: 0.04em;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Monaco, monospace;
+        font-size: 11px;
         font-weight: 700;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       }
 
       .expr-input {
         flex: 1;
         height: 32px;
-        border-radius: 8px;
+        background: rgba(12,16,21,0.88);
         border: 1px solid rgba(255,255,255,0.08);
-        background: rgba(11,15,20,0.85);
+        border-radius: 8px;
         color: var(--text);
         padding: 0 10px;
         font-size: 12px;
@@ -174,58 +172,57 @@
       }
 
       .expr-input:focus {
-        border-color: rgba(94,165,255,0.8);
-        box-shadow: inset 0 0 0 1px rgba(94,165,255,0.25);
+        border-color: rgba(94,165,255,0.7);
+        box-shadow: inset 0 0 0 1px rgba(94,165,255,0.18);
       }
 
       .delete-btn {
-        width: 20px;
-        height: 20px;
         border: none;
-        border-radius: 6px;
         background: transparent;
         color: var(--muted-2);
-        font-size: 17px;
+        font-size: 18px;
+        width: 20px;
+        height: 20px;
+        border-radius: 6px;
         cursor: pointer;
-        line-height: 1;
       }
 
       .delete-btn:hover {
-        color: var(--red);
+        color: var(--danger);
       }
 
       .sidebar-actions {
-        padding: 12px 12px 16px;
-        border-top: 1px solid var(--line);
-        background: rgba(15,20,26,0.82);
         display: flex;
         flex-direction: column;
         gap: 10px;
+        padding: 12px 12px 16px;
+        border-top: 1px solid var(--line);
+        background: rgba(16,20,25,0.9);
       }
 
       .primary-btn, .secondary-btn {
-        border: none;
         border-radius: 10px;
+        border: 1px solid rgba(255,255,255,0.08);
         padding: 11px 12px;
-        font-weight: 800;
+        font-weight: 700;
         cursor: pointer;
-        transition: transform 0.08s ease, filter 0.08s ease;
+        transition: filter 0.12s ease, transform 0.12s ease;
       }
 
       .primary-btn:hover, .secondary-btn:hover {
-        filter: brightness(1.06);
+        filter: brightness(1.05);
         transform: translateY(-1px);
       }
 
       .primary-btn {
-        background: linear-gradient(135deg, #5ea5ff, #64d2c5);
+        background: linear-gradient(135deg, #5ea5ff, #82d5ff);
         color: #081521;
+        border: none;
       }
 
       .secondary-btn {
         background: rgba(255,255,255,0.04);
         color: var(--text);
-        border: 1px solid rgba(255,255,255,0.08);
       }
 
       .main {
@@ -237,39 +234,37 @@
       }
 
       .toolbar {
+        height: 60px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        height: 60px;
-        padding: 10px 18px 8px;
+        padding: 9px 16px 8px;
         border-bottom: 1px solid var(--line);
-        background: rgba(17,22,29,0.8);
+        background: rgba(16,21,27,0.82);
       }
 
       .mode-switch {
         display: flex;
-        align-items: center;
-        gap: 4px;
-        border: 1px solid var(--line);
         border-radius: 12px;
+        border: 1px solid var(--line);
         background: rgba(255,255,255,0.02);
         padding: 3px;
       }
 
       .mode-btn {
-        border: none;
         background: transparent;
-        color: var(--muted);
+        border: none;
+        padding: 8px 11px;
         border-radius: 9px;
-        padding: 8px 12px;
-        font-weight: 800;
+        color: var(--muted);
+        font-weight: 700;
         cursor: pointer;
       }
 
       .mode-btn.active {
         background: rgba(94,165,255,0.12);
-        color: #dfeeff;
-        box-shadow: inset 0 0 0 1px rgba(94,165,255,0.3);
+        color: #e7f3ff;
+        box-shadow: inset 0 0 0 1px rgba(94,165,255,0.28);
       }
 
       .toolbar-actions {
@@ -279,13 +274,13 @@
       }
 
       .icon-btn {
-        width: 36px;
-        height: 36px;
-        border-radius: 10px;
+        width: 38px;
+        height: 38px;
         border: 1px solid var(--line);
+        border-radius: 10px;
         background: rgba(255,255,255,0.02);
         color: var(--text);
-        font-size: 20px;
+        font-size: 18px;
         cursor: pointer;
       }
 
@@ -293,14 +288,14 @@
         position: relative;
         flex: 1;
         min-height: 0;
-        background: linear-gradient(180deg, rgba(9,14,18,1), rgba(12,16,22,1));
+        background: linear-gradient(180deg, #0b1015 0%, #0d1218 100%);
       }
 
       canvas {
+        display: block;
         width: 100%;
         height: 100%;
-        display: block;
-        background: #0d1117;
+        background: #090d12;
         cursor: grab;
       }
 
@@ -308,7 +303,7 @@
         cursor: grabbing;
       }
 
-      @media (max-width: 900px) {
+      @media (max-width: 860px) {
         body {
           flex-direction: column;
         }
@@ -321,9 +316,9 @@
         }
 
         .toolbar {
-          flex-wrap: wrap;
           height: auto;
-          gap: 8px;
+          flex-wrap: wrap;
+          gap: 10px;
         }
       }
     </style>
@@ -333,17 +328,17 @@
       <aside class="sidebar">
         <div class="sidebar-header">
           <div class="brand">
-            <div class="brand-badge">3D</div>
+            <div class="brand-mark">3D</div>
             <span>Graphing</span>
           </div>
-          <button class="reset-btn" onclick="resetView()">Reset</button>
+          <button class="reset-btn" type="button" onclick="resetView()">Reset</button>
         </div>
 
         <div id="expressionList" class="expr-list"></div>
 
         <div class="sidebar-actions">
-          <button class="primary-btn" onclick="addEquation()">＋ Add expression</button>
-          <button class="secondary-btn" onclick="addPreset()">✦ Example</button>
+          <button class="primary-btn" type="button" onclick="addExpression()">＋ Add expression</button>
+          <button class="secondary-btn" type="button" onclick="addExample()">✦ Example</button>
         </div>
       </aside>
 
@@ -354,8 +349,8 @@
           </div>
 
           <div class="toolbar-actions">
-            <button class="icon-btn" type="button" onclick="zoomView(1.18)">＋</button>
-            <button class="icon-btn" type="button" onclick="zoomView(0.85)">−</button>
+            <button class="icon-btn" type="button" onclick="zoomView(1.15)">＋</button>
+            <button class="icon-btn" type="button" onclick="zoomView(0.88)">−</button>
           </div>
         </div>
 
@@ -369,7 +364,8 @@
       const Parser = exprEval.Parser;
       const canvas = document.getElementById('graphCanvas');
       const ctx = canvas.getContext('2d');
-      const palette = ['#5ea5ff', '#59d7a4', '#ffb454', '#f771b3', '#9f8cff', '#ff7f7f'];
+
+      const palette = ['#5ea5ff', '#64d7c5', '#ffb454', '#f67cc4', '#8c9aff', '#ff7c7c'];
 
       const defaultView = {
         xMin: -5,
@@ -378,28 +374,29 @@
         yMax: 5,
         zMin: -5,
         zMax: 5,
-        rotX: -0.8,
+        rotX: -0.85,
         rotY: 0.9,
         zoom: 1
       };
 
       let view = { ...defaultView };
       let dragState = { active: false, x: 0, y: 0 };
-      let items = [
-        { id: createId('expr'), type: 'surface', value: 'sin(x) * cos(y)', visible: true, color: '#5ea5ff' }
-      ];
 
       function createId(prefix) {
         return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
       }
+
+      let items = [
+        { id: createId('expr'), type: 'surface', value: 'sin(x)*cos(y)', visible: true, color: '#5ea5ff' }
+      ];
 
       function nextColor() {
         const used = items.filter(i => i.type === 'surface').length;
         return palette[used % palette.length];
       }
 
-      function escapeHtml(str) {
-        return String(str)
+      function escapeHtml(value) {
+        return String(value)
           .replace(/&/g, '&amp;')
           .replace(/</g, '&lt;')
           .replace(/>/g, '&gt;')
@@ -416,26 +413,26 @@
           wrapper.className = 'expr-item';
           wrapper.innerHTML = `
             <div class="expr-row">
-              <button class="visibility-toggle ${item.visible ? 'on' : ''}" onclick="toggleItem('${item.id}')">${item.visible ? '✓' : ''}</button>
+              <button class="toggle ${item.visible ? 'on' : ''}" type="button" onclick="toggleItem('${item.id}')">${item.visible ? '✓' : ''}</button>
               <span class="expr-label">z =</span>
               <input class="expr-input" style="border-color: ${item.color};" value="${escapeHtml(item.value)}" oninput="updateExpression('${item.id}', this.value)" />
-              <button class="delete-btn" onclick="deleteItem('${item.id}')">×</button>
+              <button class="delete-btn" type="button" onclick="deleteItem('${item.id}')">×</button>
             </div>
           `;
           container.appendChild(wrapper);
         });
       }
 
-      function addEquation() {
-        items.push({ id: createId('expr'), type: 'surface', value: 'sin(x) * cos(y)', visible: true, color: nextColor() });
+      function addExpression() {
+        items.push({ id: createId('expr'), type: 'surface', value: 'sin(x) + cos(y)', visible: true, color: nextColor() });
         renderList();
         draw();
       }
 
-      function addPreset() {
+      function addExample() {
         items = [
-          { id: createId('expr'), type: 'surface', value: 'sin(x) * cos(y)', visible: true, color: '#5ea5ff' },
-          { id: createId('expr'), type: 'surface', value: 'sqrt(9 - x^2 - y^2)', visible: true, color: '#59d7a4' }
+          { id: createId('expr'), type: 'surface', value: 'sin(x)*cos(y)', visible: true, color: '#5ea5ff' },
+          { id: createId('expr'), type: 'surface', value: 'sqrt(9 - x^2 - y^2)', visible: true, color: '#64d7c5' }
         ];
         renderList();
         draw();
@@ -459,7 +456,7 @@
       function deleteItem(id) {
         items = items.filter(i => i.id !== id);
         if (!items.length) {
-          items.push({ id: createId('expr'), type: 'surface', value: 'sin(x) * cos(y)', visible: true, color: nextColor() });
+          items.push({ id: createId('expr'), type: 'surface', value: 'sin(x)*cos(y)', visible: true, color: nextColor() });
         }
         renderList();
         draw();
@@ -488,90 +485,89 @@
         const y = point.y * scale;
         const z = point.z * scale;
         const perspective = 1 / (1 + z / 900);
-        const px = canvas.width / 2 + x * perspective;
-        const py = canvas.height / 2 - y * perspective;
-        return { x: px, y: py, z };
-      }
-
-      function toWorldX(nx) {
-        const range = view.xMax - view.xMin;
-        return view.xMin + nx * range;
-      }
-
-      function toWorldY(ny) {
-        const range = view.yMax - view.yMin;
-        return view.yMin + ny * range;
+        return {
+          x: canvas.width / 2 + x * perspective,
+          y: canvas.height / 2 - y * perspective
+        };
       }
 
       function drawGrid() {
         const xMin = view.xMin, xMax = view.xMax;
         const yMin = view.yMin, yMax = view.yMax;
+        const step = 1;
 
-        ctx.strokeStyle = 'rgba(255,255,255,0.08)';
         ctx.lineWidth = 1;
+        ctx.strokeStyle = 'rgba(255,255,255,0.08)';
 
-        const xStep = 1;
-        const yStep = 1;
-
-        for (let x = xMin; x <= xMax + 0.0001; x += xStep) {
+        for (let x = xMin; x <= xMax + 0.0001; x += step) {
           ctx.beginPath();
-          let first = true;
-          for (let y = yMin; y <= yMax + 0.0001; y += yStep) {
+          let started = false;
+          for (let y = yMin; y <= yMax + 0.0001; y += step) {
             const p = rotatePoint({ x, y, z: 0 }, view.rotX, view.rotY);
             const q = project3D(p);
-            if (first) { ctx.moveTo(q.x, q.y); first = false; } else { ctx.lineTo(q.x, q.y); }
+            if (!started) {
+              ctx.moveTo(q.x, q.y);
+              started = true;
+            } else {
+              ctx.lineTo(q.x, q.y);
+            }
           }
           ctx.stroke();
         }
 
-        for (let y = yMin; y <= yMax + 0.0001; y += yStep) {
+        for (let y = yMin; y <= yMax + 0.0001; y += step) {
           ctx.beginPath();
-          let first = true;
-          for (let x = xMin; x <= xMax + 0.0001; x += xStep) {
+          let started = false;
+          for (let x = xMin; x <= xMax + 0.0001; x += step) {
             const p = rotatePoint({ x, y, z: 0 }, view.rotX, view.rotY);
             const q = project3D(p);
-            if (first) { ctx.moveTo(q.x, q.y); first = false; } else { ctx.lineTo(q.x, q.y); }
+            if (!started) {
+              ctx.moveTo(q.x, q.y);
+              started = true;
+            } else {
+              ctx.lineTo(q.x, q.y);
+            }
           }
           ctx.stroke();
         }
       }
 
       function drawAxes() {
-        const axisEndpoints = [
+        const axes = [
           { x: 0, y: 0, z: 0 },
           { x: 1, y: 0, z: 0 },
           { x: 0, y: 1, z: 0 },
           { x: 0, y: 0, z: 1 }
         ].map(p => project3D(rotatePoint(p, view.rotX, view.rotY)));
 
-        ctx.strokeStyle = '#c9d6ee';
-        ctx.lineWidth = 1.8;
+        ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+        ctx.lineWidth = 1.6;
         ctx.beginPath();
-        ctx.moveTo(axisEndpoints[0].x, axisEndpoints[0].y);
-        ctx.lineTo(axisEndpoints[1].x, axisEndpoints[1].y);
-        ctx.moveTo(axisEndpoints[0].x, axisEndpoints[0].y);
-        ctx.lineTo(axisEndpoints[2].x, axisEndpoints[2].y);
-        ctx.moveTo(axisEndpoints[0].x, axisEndpoints[0].y);
-        ctx.lineTo(axisEndpoints[3].x, axisEndpoints[3].y);
+
+        ctx.moveTo(axes[0].x, axes[0].y);
+        ctx.lineTo(axes[1].x, axes[1].y);
+        ctx.moveTo(axes[0].x, axes[0].y);
+        ctx.lineTo(axes[2].x, axes[2].y);
+        ctx.moveTo(axes[0].x, axes[0].y);
+        ctx.lineTo(axes[3].x, axes[3].y);
+
         ctx.stroke();
       }
 
       function drawSurface(item) {
         try {
-          const parser = Parser.parse(item.value);
+          const expr = Parser.parse(item.value);
           const xMin = view.xMin, xMax = view.xMax;
           const yMin = view.yMin, yMax = view.yMax;
-          const step = 0.7;
+          const step = 0.55;
           const mesh = [];
 
           for (let gx = xMin; gx <= xMax + 0.0001; gx += step) {
             const row = [];
             for (let gy = yMin; gy <= yMax + 0.0001; gy += step) {
-              const scope = { x: gx, y: gy };
-              const zVal = parser.evaluate(scope);
+              const zVal = expr.evaluate({ x: gx, y: gy });
               if (typeof zVal === 'number' && Number.isFinite(zVal)) {
-                const p = rotatePoint({ x: gx, y: gy, z: zVal }, view.rotX, view.rotY);
-                row.push(project3D(p));
+                row.push(project3D(rotatePoint({ x: gx, y: gy, z: zVal }, view.rotX, view.rotY)));
               } else {
                 row.push(null);
               }
@@ -580,7 +576,7 @@
           }
 
           ctx.strokeStyle = item.color;
-          ctx.lineWidth = 1.2;
+          ctx.lineWidth = 1.1;
 
           for (let i = 0; i < mesh.length - 1; i++) {
             for (let j = 0; j < mesh[i].length - 1; j++) {
@@ -588,7 +584,8 @@
               const b = mesh[i][j + 1];
               const c = mesh[i + 1][j];
               const d = mesh[i + 1][j + 1];
-              const segments = [[a, b], [a, c], [b, d], [c, d]];
+
+              const segments = [[a,b],[a,c],[b,d],[c,d]];
               segments.forEach(([p1, p2]) => {
                 if (p1 && p2) {
                   ctx.beginPath();
@@ -623,20 +620,20 @@
         draw();
       }
 
-      canvas.addEventListener('mousedown', (e) => {
+      canvas.addEventListener('mousedown', (event) => {
         dragState.active = true;
-        dragState.x = e.clientX;
-        dragState.y = e.clientY;
+        dragState.x = event.clientX;
+        dragState.y = event.clientY;
         canvas.classList.add('dragging');
       });
 
-      window.addEventListener('mousemove', (e) => {
+      window.addEventListener('mousemove', (event) => {
         if (!dragState.active) return;
 
-        const dx = e.clientX - dragState.x;
-        const dy = e.clientY - dragState.y;
-        dragState.x = e.clientX;
-        dragState.y = e.clientY;
+        const dx = event.clientX - dragState.x;
+        const dy = event.clientY - dragState.y;
+        dragState.x = event.clientX;
+        dragState.y = event.clientY;
 
         view.rotY += dx * 0.01;
         view.rotX += dy * 0.01;
@@ -648,9 +645,9 @@
         canvas.classList.remove('dragging');
       });
 
-      canvas.addEventListener('wheel', (e) => {
-        e.preventDefault();
-        const factor = e.deltaY > 0 ? 1.08 : 0.93;
+      canvas.addEventListener('wheel', (event) => {
+        event.preventDefault();
+        const factor = event.deltaY > 0 ? 1.08 : 0.93;
         zoomView(factor);
       }, { passive: false });
 
